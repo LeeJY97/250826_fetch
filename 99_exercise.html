@@ -18,9 +18,16 @@
         font-family: "Simple";
       }
 
+      body {
+        background-image: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQd7Vt_amQR_P1kWRB7KQPxMx3agi5xoOjsNci0zOW_ngvrSMGDBaAIxmFWrNfomrVyIrU&usqp=CAU");
+        background-size: contain; /* 배경 이미지 배율 조정 */
+        background-repeat: no-repeat;
+        background-position: center; /* 배경 이미지 중앙 정렬 */
+      }
+
       /* section */
       section {
-        margin: 1rem 2rem; /*  세로(위,아래) 가로(왼.오) */
+        margin: 1rem 2rem; /* 세로(위,아래) 가로(왼.오) */
       }
       /* controller */
       #search-form {
@@ -51,8 +58,6 @@
     </style>
   </head>
   <body>
-    <!-- https://pokeapi.co/ -->
-    <!-- https://pokeapi.co/docs/v2 -->
     <section id="controller">
       <form id="search-form">
         <input

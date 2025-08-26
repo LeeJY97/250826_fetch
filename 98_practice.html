@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EPL 팀 검색기 - 자동완성</title>
+    <style>
+      @font-face {
+        font-family: "Simple";
+        src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2307-1@1.1/Danjo-bold-Regular.woff2")
+          format("woff2");
+        font-weight: normal;
+        font-display: swap;
+      }
+
+      body,
+      input {
+        font-family: "Simple";
+        margin: 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #3d003d 0%, #001f3f 100%);
+        min-height: 100vh;
+        color: white;
+      }
+
+      section {
+        margin: 1rem 2rem;
+      }
+
+      #search-container {
+        position: relative;
+        width: 280px;
+        margin: 0 auto;
+      }
+
+      #search-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      #search-form input,
+      #search-form button {
+        width: 280px;
+        margin: 0;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+      }
+
+      #team-name {
+        background: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        outline: none;
+        transition: all 0.3s ease;
+      }
+
+      #team-name:focus {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+      }
+
+      #autocomplete-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border-radius: 0 0 8px 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        display: none;
+      }
+
+      .autocomplete-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .autocomplete-item:hover,
+      .autocomplete-item.selected {
+        background-color: #f0f8ff;
+      }
+
+      .autocomplete-item:last-child {
+        border-bottom: none;
+        border-radius: 0 0 8px 8px;
+      }
+
+      .team-logo-small {
+        width: 25px;
+        height: 25px;
+        object-fit: contain;
+      }
+
+      .team-name-text {
+        font-weight: bold;
+        color: #333;
+      }
+
+      #random-btn {
+        background: linear-gradient(45deg, #e74c3c, #f39c12);
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
+      }
+
+      #random-btn:hover {
+        background: linear-gradient(45deg, #f39c12, #e74c3c);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+      }
+
+      #search-form-btn {
+        background: linear-gradient(45deg, #2ecc71, #27ae60);
+        color: white;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 2px 10px rgba(46, 204, 113, 0.3);
+        transition: all 0.3s ease;
+      }
+
+      #search-form-btn:hover {
+        background: linear-gradient(45deg, #27ae60, #2ecc71);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+      }
+
+      #container,
+      #team-info > section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      #team-info {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-width: 350px;
+        margin: 20px auto;
+        transform: scale(0.95);
+        opacity: 0;
+        transition: all 0.5s ease;
+        color: #333;
+      }
+
+      #team-info.show {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      #team-info img {
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, #ffffff, #f8f9fa);
+        padding: 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        transition: transform 0.3s ease;
+        object-fit: contain;
+      }
+
+      #team-info img:hover {
+        transform: scale(1.05) rotate(5deg);
+      }
+
+      .team-info-text {
+        font-size: 1.3em;
+        margin: 0.3rem 0;
+        color: #333;
+      }
+
+      #message {
+        font-size: 1.2em;
+        color: white;
+        text-align: center;
+        padding: 30px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        max-width: 400px;
+        margin: 20px auto;
+      }
+
+      .hide {
+        display: none;
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 10px;
+        }
+
+        #search-container,
+        #search-form input,
+        #search-form button {
+          width: 90vw;
+          max-width: 300px;
+        }
+
+        #team-info {
+          margin: 10px;
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section id="controller">
+      <div id="search-container">
+        <form id="search-form">
+          <input
+            type="text"
+            name="team-name"
+            id="team-name"
+            placeholder="EPL 팀 이름을 입력해주세요 (예: 맨유)"
+            autocomplete="off"
+          />
+          <div id="autocomplete-list"></div>
+          <button type="submit" id="search-form-btn">🔍 검색</button>
+          <button type="button" id="random-btn">🎲 랜덤 팀</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="container">
+      <div id="message">검색하거나 랜덤 버튼을 눌러보세요!</div>
+      <section class="hide" id="team-info">
+        <section>
+          <div class="team-info-text">
+            <strong>이름</strong>: <span id="team-koname">팀 이름</span>
+          </div>
+          <div class="team-info-text">
+            <strong>영어</strong>: <span id="team-enname">Team Name</span>
+          </div>
+          <img src="" alt="팀 로고" />
+        </section>
+      </section>
+    </section>
+
+    <script>
+      let teamList = [];
+      let selectedIndex = -1;
+
+      const EPL_TEAMS = [
+        {
+          id: 1,
+          ko: "아스널",
+          en: "Arsenal",
+          logo: "https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg",
+        },
+        {
+          id: 2,
+          ko: "아스톤 빌라",
+          en: "Aston Villa",
+          logo: "https://upload.wikimedia.org/wikipedia/en/9/9f/Aston_Villa_FC_logo.svg",
+        },
+        {
+          id: 3,
+          ko: "본머스",
+          en: "Bournemouth",
+          logo: "https://upload.wikimedia.org/wikipedia/en/e/e5/AFC_Bournemouth_%282013%29.svg",
+        },
+        {
+          id: 4,
+          ko: "브렌트포드",
+          en: "Brentford",
+          logo: "https://upload.wikimedia.org/wikipedia/en/2/23/Brentford_FC_logo.svg",
+        },
+        {
+          id: 5,
+          ko: "브라이튼",
+          en: "Brighton & Hove Albion",
+          logo: "https://upload.wikimedia.org/wikipedia/en/f/fd/Brighton_%26_Hove_Albion_logo.svg",
+        },
+        {
+          id: 6,
+          ko: "첼시",
+          en: "Chelsea",
+          logo: "https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg",
+        },
+        {
+          id: 7,
+          ko: "크리스탈 팰리스",
+          en: "Crystal Palace",
+          logo: "https://upload.wikimedia.org/wikipedia/en/a/a2/Crystal_Palace_FC_logo.svg",
+        },
+        {
+          id: 8,
+          ko: "에버턴",
+          en: "Everton",
+          logo: "https://upload.wikimedia.org/wikipedia/en/7/7c/Everton_FC_logo.svg",
+        },
+        {
+          id: 9,
+          ko: "풀럼",
+          en: "Fulham",
+          logo: "https://upload.wikimedia.org/wikipedia/en/e/eb/Fulham_FC_%28crest%29.svg",
+        },
+        {
+          id: 10,
+          ko: "입스위치 타운",
+          en: "Ipswich Town",
+          logo: "https://upload.wikimedia.org/wikipedia/en/4/43/Ipswich_Town.svg",
+        },
+        {
+          id: 11,
+          ko: "레스터 시티",
+          en: "Leicester City",
+          logo: "https://upload.wikimedia.org/wikipedia/en/2/2d/Leicester_City_F.C._logo.svg",
+        },
+        {
+          id: 12,
+          ko: "리버풀",
+          en: "Liverpool",
+          logo: "https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg",
+        },
+        {
+          id: 13,
+          ko: "맨시티",
+          en: "Manchester City",
+          logo: "https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_logo.svg",
+        },
+        {
+          id: 14,
+          ko: "맨유",
+          en: "Manchester United",
+          logo: "https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg",
+        },
+        {
+          id: 15,
+          ko: "뉴캐슬",
+          en: "Newcastle United",
+          logo: "https://upload.wikimedia.org/wikipedia/en/5/56/Newcastle_United_FC_logo.svg",
+        },
+        {
+          id: 16,
+          ko: "노팅엄 포레스트",
+          en: "Nottingham Forest",
+          logo: "https://upload.wikimedia.org/wikipedia/en/e/e5/Nottingham_Forest_F.C._logo.svg",
+        },
+        {
+          id: 17,
+          ko: "사우샘프턴",
+          en: "Southampton",
+          logo: "https://upload.wikimedia.org/wikipedia/en/c/c9/Southampton_FC.svg",
+        },
+        {
+          id: 18,
+          ko: "토트넘",
+          en: "Tottenham Hotspur",
+          logo: "https://upload.wikimedia.org/wikipedia/en/b/b4/Tottenham_Hotspur.svg",
+        },
+        {
+          id: 19,
+          ko: "웨스트햄",
+          en: "West Ham United",
+          logo: "https://upload.wikimedia.org/wikipedia/en/c/c2/West_Ham_United_FC_logo.svg",
+        },
+        {
+          id: 20,
+          ko: "울버햄튼",
+          en: "Wolverhampton Wanderers",
+          logo: "https://upload.wikimedia.org/wikipedia/en/f/fc/Wolverhampton_Wanderers.svg",
+        },
+      ];
+
+      function showAutocomplete(inputValue) {
+        const autocompleteList = document.getElementById("autocomplete-list");
+        if (!inputValue.trim()) {
+          autocompleteList.style.display = "none";
+          return;
+        }
+
+        const filtered = EPL_TEAMS.filter(
+          (team) =>
+            team.ko.toLowerCase().includes(inputValue.toLowerCase()) ||
+            team.en.toLowerCase().includes(inputValue.toLowerCase())
+        ).slice(0, 8);
+
+        if (filtered.length === 0) {
+          autocompleteList.style.display = "none";
+          return;
+        }
+
+        autocompleteList.innerHTML = filtered
+          .map(
+            (team) =>
+              `<div class="autocomplete-item" data-id="${team.id}">
+                 <img src="${team.logo}" alt="${team.en} 로고" class="team-logo-small">
+                 <span class="team-name-text">${team.ko}</span>
+                 <span style="color: #999; margin-left: auto;">${team.en}</span>
+               </div>`
+          )
+          .join("");
+
+        autocompleteList.style.display = "block";
+        selectedIndex = -1;
+      }
+
+      function selectAutocompleteItem(team) {
+        document.getElementById("team-name").value = team.ko;
+        document.getElementById("autocomplete-list").style.display = "none";
+        displayTeam(team);
+      }
+
+      function handleKeyNavigation(event) {
+        const autocompleteList = document.getElementById("autocomplete-list");
+        const items = autocompleteList.querySelectorAll(".autocomplete-item");
+        if (items.length === 0) return;
+
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+          updateSelection(items);
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          selectedIndex = Math.max(selectedIndex - 1, -1);
+          updateSelection(items);
+        } else if (event.key === "Enter" && selectedIndex >= 0) {
+          event.preventDefault();
+          const selectedItem = items[selectedIndex];
+          const teamId = parseInt(selectedItem.dataset.id);
+          const team = EPL_TEAMS.find((p) => p.id === teamId);
+          selectAutocompleteItem(team);
+        } else if (event.key === "Escape") {
+          autocompleteList.style.display = "none";
+          selectedIndex = -1;
+        }
+      }
+
+      function updateSelection(items) {
+        items.forEach((item, index) => {
+          item.classList.toggle("selected", index === selectedIndex);
+        });
+      }
+
+      function displayTeam(team) {
+        document.getElementById("team-koname").textContent = team.ko;
+        document.getElementById("team-enname").textContent = team.en;
+        document.getElementById("container").querySelector("img").src =
+          team.logo;
+
+        const teamInfo = document.getElementById("team-info");
+        teamInfo.classList.remove("hide");
+        setTimeout(() => teamInfo.classList.add("show"), 10);
+        document.getElementById("message").classList.add("hide");
+      }
+
+      function searchTeam(event) {
+        event.preventDefault();
+        const name = document.getElementById("team-name").value.trim();
+        if (!name) {
+          alert("팀 이름을 입력해주세요!");
+          return;
+        }
+
+        const team = EPL_TEAMS.find(
+          (t) =>
+            t.ko.toLowerCase() === name.toLowerCase() ||
+            t.en.toLowerCase() === name.toLowerCase()
+        );
+
+        if (team) {
+          displayTeam(team);
+        } else {
+          showMessage("존재하지 않는 팀입니다!");
+        }
+      }
+
+      function searchRandomTeam() {
+        const randomTeam =
+          EPL_TEAMS[Math.floor(Math.random() * EPL_TEAMS.length)];
+        document.getElementById("team-name").value = randomTeam.ko;
+        displayTeam(randomTeam);
+      }
+
+      function showMessage(text) {
+        document.getElementById("message").textContent = text;
+        document.getElementById("message").className = "";
+        document.getElementById("team-info").classList.add("hide");
+        document.getElementById("team-info").classList.remove("show");
+        document.getElementById("message").classList.remove("hide");
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        teamList = EPL_TEAMS;
+        const input = document.getElementById("team-name");
+        const autocompleteList = document.getElementById("autocomplete-list");
+
+        showMessage("검색하거나 랜덤 버튼을 눌러보세요!");
+
+        input.addEventListener("input", (e) => {
+          showAutocomplete(e.target.value);
+        });
+
+        input.addEventListener("keydown", handleKeyNavigation);
+
+        autocompleteList.addEventListener("click", (e) => {
+          const item = e.target.closest(".autocomplete-item");
+          if (item) {
+            const teamId = parseInt(item.dataset.id);
+            const team = teamList.find((t) => t.id === teamId);
+            selectAutocompleteItem(team);
+          }
+        });
+
+        document.addEventListener("click", (e) => {
+          if (!e.target.closest("#search-container")) {
+            autocompleteList.style.display = "none";
+            selectedIndex = -1;
+          }
+        });
+
+        document
+          .getElementById("search-form")
+          .addEventListener("submit", searchTeam);
+        document
+          .getElementById("random-btn")
+          .addEventListener("click", searchRandomTeam);
+
+        setTimeout(searchRandomTeam, 1000);
+      });
+    </script>
+  </body>
+</html>
